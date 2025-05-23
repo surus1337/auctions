@@ -12,7 +12,6 @@ A web-based token auction simulator built with Rust, Leptos, and WebAssembly. Th
 - Detailed analytics and charts
 - Export functionality for auction data
 - Dark mode support
-- Keyboard shortcuts for quick actions
 
 ## Prerequisites
 
@@ -59,13 +58,6 @@ The application will be available at `http://localhost:8080`
 2. Use the "Run Auction" button to start an auction
 3. View results in real-time
 4. Use "Next Auction" to proceed with growth parameters
-
-### Keyboard Shortcuts
-
-- `Ctrl/Cmd + R`: Run Auction
-- `Ctrl/Cmd + N`: Next Auction
-- `Ctrl/Cmd + D`: Toggle Dark Mode
-- `1-4`: Switch between tabs (Simulation, Analytics, Bid Details, Configuration)
 
 ### Exporting Data
 

@@ -1155,42 +1155,6 @@ pub fn App() -> impl IntoView {
         generate_bidders_action();
     });
     
-    // Keyboard shortcuts
-    create_effect(move |_| {
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
-        
-        let keydown_closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
-            let key = event.key();
-            let ctrl_or_cmd = event.ctrl_key() || event.meta_key();
-            
-            match key.as_str() {
-                "r" if ctrl_or_cmd => {
-                    event.prevent_default();
-                    run_auction_action();
-                }
-                "n" if ctrl_or_cmd => {
-                    event.prevent_default();
-                    if auction_results.get().is_some() {
-                        next_auction_action();
-                    }
-                }
-                "1" => set_active_tab.set(ActiveTab::Simulation),
-                "2" => set_active_tab.set(ActiveTab::Analytics),
-                "3" => set_active_tab.set(ActiveTab::BidDetails),
-                "4" => set_active_tab.set(ActiveTab::Configuration),
-                "d" if ctrl_or_cmd => {
-                    event.prevent_default();
-                    set_dark_mode.update(|d| *d = !*d);
-                }
-                _ => {}
-            }
-        }) as Box<dyn FnMut(_)>);
-        
-        document.add_event_listener_with_callback("keydown", keydown_closure.as_ref().unchecked_ref()).unwrap();
-        keydown_closure.forget();
-    });
-
     view! {
         <div class=move || format!("min-h-screen transition-colors {}", 
             if dark_mode.get() { "bg-gray-900 text-white" } else { "bg-gray-50 text-gray-900" }
@@ -2277,19 +2241,6 @@ pub fn App() -> impl IntoView {
                             </div>
                         </div>
                     </Show>
-                </div>
-                
-                // Help/Keyboard Shortcuts
-                <div class=move || format!("mt-8 p-4 rounded-lg text-sm {}",
-                    if dark_mode.get() { "bg-gray-800 text-gray-400" } else { "bg-gray-100 text-gray-600" }
-                )>
-                    <h3 class="font-semibold mb-2">"Keyboard Shortcuts"</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <div><kbd class="px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs">"Ctrl/Cmd + R"</kbd>" Run Auction"</div>
-                        <div><kbd class="px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs">"Ctrl/Cmd + N"</kbd>" Next Auction"</div>
-                        <div><kbd class="px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs">"Ctrl/Cmd + D"</kbd>" Toggle Dark Mode"</div>
-                        <div><kbd class="px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs">"1-4"</kbd>" Switch Tabs"</div>
-                    </div>
                 </div>
             </div>
         </div>
