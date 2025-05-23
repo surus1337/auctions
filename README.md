@@ -2,6 +2,8 @@
 
 A web-based token auction simulator built with Rust, Leptos, and WebAssembly. This application simulates token auctions with various market conditions, bidder profiles, and learning algorithms.
 
+**Live Demo:** [https://surus1337.github.io/auctions/](https://surus1337.github.io/auctions/)
+
 ## Features
 
 - Interactive auction simulation with real-time visualization
