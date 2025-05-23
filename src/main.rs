@@ -1688,51 +1688,6 @@ pub fn App() -> impl IntoView {
                                 
                                 view! {
                                     <div class="space-y-8">
-                                        // Price History Chart
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Price & Pool Trends"</h3>
-                                            <div class=move || format!("p-4 rounded relative {}",
-                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
-                                            )>
-                                                <Show when=move || charts_loading.get()>
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
-                                                        <div class="text-lg">"Loading charts..."</div>
-                                                    </div>
-                                                </Show>
-                                                <canvas id="price-history-chart"></canvas>
-                                            </div>
-                                        </div>
-                                        
-                                        // Trading Volume Chart
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Trading Volume"</h3>
-                                            <div class=move || format!("p-4 rounded relative {}",
-                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
-                                            )>
-                                                <Show when=move || charts_loading.get()>
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
-                                                        <div class="text-lg">"Loading charts..."</div>
-                                                    </div>
-                                                </Show>
-                                                <canvas id="trading-volume-chart"></canvas>
-                                            </div>
-                                        </div>
-                                        
-                                        // Bidder Performance Chart
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Top Bidder Performance"</h3>
-                                            <div class=move || format!("p-4 rounded relative {}",
-                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
-                                            )>
-                                                <Show when=move || charts_loading.get()>
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
-                                                        <div class="text-lg">"Loading charts..."</div>
-                                                    </div>
-                                                </Show>
-                                                <canvas id="bidder-performance-chart"></canvas>
-                                            </div>
-                                        </div>
-                                        
                                         // Summary Statistics
                                         <div>
                                             <h3 class="text-lg font-semibold mb-4">"Summary Statistics"</h3>
@@ -1776,6 +1731,51 @@ pub fn App() -> impl IntoView {
                                                         </>
                                                     }
                                                 }}
+                                            </div>
+                                        </div>
+
+                                        // Price History Chart
+                                        <div>
+                                            <h3 class="text-lg font-semibold mb-4">"Price & Pool Trends"</h3>
+                                            <div class=move || format!("p-4 rounded relative {}",
+                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
+                                            )>
+                                                <Show when=move || charts_loading.get()>
+                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
+                                                        <div class="text-lg">"Loading charts..."</div>
+                                                    </div>
+                                                </Show>
+                                                <canvas id="price-history-chart"></canvas>
+                                            </div>
+                                        </div>
+                                        
+                                        // Trading Volume Chart
+                                        <div>
+                                            <h3 class="text-lg font-semibold mb-4">"Trading Volume"</h3>
+                                            <div class=move || format!("p-4 rounded relative {}",
+                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
+                                            )>
+                                                <Show when=move || charts_loading.get()>
+                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
+                                                        <div class="text-lg">"Loading charts..."</div>
+                                                    </div>
+                                                </Show>
+                                                <canvas id="trading-volume-chart"></canvas>
+                                            </div>
+                                        </div>
+                                        
+                                        // Bidder Performance Chart
+                                        <div>
+                                            <h3 class="text-lg font-semibold mb-4">"Top Bidder Performance"</h3>
+                                            <div class=move || format!("p-4 rounded relative {}",
+                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
+                                            )>
+                                                <Show when=move || charts_loading.get()>
+                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
+                                                        <div class="text-lg">"Loading charts..."</div>
+                                                    </div>
+                                                </Show>
+                                                <canvas id="bidder-performance-chart"></canvas>
                                             </div>
                                         </div>
                                     </div>
