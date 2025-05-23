@@ -44,14 +44,17 @@ jobs:
           # Install wasm-pack if needed
           cargo install wasm-pack
           
+          # Create staging directory
+          mkdir -p target/site/staging
+          
           # Build with verbose output and staging path
-          trunk build --release --dist target/site --public-url /auctions/staging/ -v
+          trunk build --release --dist target/site/staging --public-url /auctions/staging/ -v
           
           # List the contents of the build directory
           echo "Contents of target/site:"
           ls -la target/site || echo "target/site not found"
-          echo "Contents of target:"
-          ls -la target || echo "target not found"
+          echo "Contents of target/site/staging:"
+          ls -la target/site/staging || echo "target/site/staging not found"
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -63,11 +66,14 @@ jobs:
 
   deploy:
     environment:
-      name: github-pages-staging
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 
+        uses: actions/deploy-pages@v4
+        with:
+          path: ./target/site
+          base_path: staging 
