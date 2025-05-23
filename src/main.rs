@@ -1057,10 +1057,37 @@ impl Environment {
 #[component]
 fn EnvironmentBanner() -> impl IntoView {
     let environment = Environment::from_url();
+    let window = web_sys::window().unwrap();
+    let location = window.location();
+    let current_path = location.pathname().unwrap();
+    
+    // Get the base path without environment
+    let base_path = if current_path.contains("/staging") {
+        current_path.replace("/staging", "")
+    } else {
+        current_path.clone()
+    };
+    
+    // Create the alternate environment URL
+    let alternate_url = match environment {
+        Environment::Staging => base_path,
+        Environment::Production => format!("{}/staging", base_path),
+    };
     
     view! {
-        <div class=format!("w-full py-1 text-center text-white text-sm font-medium {}", environment.color_class())>
-            {format!("{} Environment", environment.name())}
+        <div class=format!("w-full py-1 text-center text-white text-sm font-medium flex items-center justify-center gap-2 {}", environment.color_class())>
+            <span>{format!("{} Environment", environment.name())}</span>
+            <a 
+                href=alternate_url
+                class="text-white/80 hover:text-white underline text-xs"
+            >
+                {format!("Switch to {} →", 
+                    match environment {
+                        Environment::Staging => "Production",
+                        Environment::Production => "Staging"
+                    }
+                )}
+            </a>
         </div>
     }
 }
