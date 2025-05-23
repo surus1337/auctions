@@ -26,13 +26,31 @@ jobs:
           components: rust-src, wasm32-unknown-unknown
           
       - name: Install Trunk
-        run: cargo install trunk
-        
+        run: |
+          cargo install trunk
+          trunk --version
+          
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
         
       - name: Build
-        run: trunk build --release
+        run: |
+          # Show environment info
+          rustc --version
+          cargo --version
+          wasm-pack --version || echo "wasm-pack not installed"
+          
+          # Install wasm-pack if needed
+          cargo install wasm-pack
+          
+          # Build with verbose output
+          trunk build --release -v
+          
+          # List the contents of the build directory
+          echo "Contents of target/site:"
+          ls -la target/site || echo "target/site not found"
+          echo "Contents of target:"
+          ls -la target || echo "target not found"
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
