@@ -1,0 +1,73 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ production ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-production"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.86.0
+        with:
+          components: rust-src
+          targets: wasm32-unknown-unknown
+          
+      - name: Install Trunk
+        run: |
+          cargo install trunk
+          trunk --version
+          
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Build
+        run: |
+          # Show environment info
+          rustc --version
+          cargo --version
+          wasm-pack --version || echo "wasm-pack not installed"
+          
+          # Install wasm-pack if needed
+          cargo install wasm-pack
+          
+          # Build with verbose output for production
+          trunk build --release --dist target/site --public-url /auctions/ -v
+          
+          # List the contents of the build directory
+          echo "Contents of target/site:"
+          ls -la target/site || echo "target/site not found"
+          echo "Contents of target:"
+          ls -la target || echo "target not found"
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./target/site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 
