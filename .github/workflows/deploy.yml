@@ -45,7 +45,7 @@ jobs:
           cargo install wasm-pack
           
           # Build with verbose output
-          trunk build --release --dist target/site -v
+          trunk build --release --dist target/site --public-url /auctions/ -v
           
           # List the contents of the build directory
           echo "Contents of target/site:"
