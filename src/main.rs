@@ -1114,11 +1114,15 @@ fn MarketConditionBadge(condition: MarketCondition) -> impl IntoView {
         MarketCondition::Neutral => ("bg-gray-100", "text-gray-800", "➖"),
     };
     
+    // Clone the values we need for the view
+    let name = condition.name().to_string();
+    let description = condition.description().to_string();
+    
     view! {
         <div class=format!("flex items-center gap-2 px-3 py-1 rounded {} {}", bg_color, text_color)>
             <span class="text-lg">{icon}</span>
-            <span class="font-medium">{condition.name()}</span>
-            <StatusTooltip content=condition.description().to_string()/>
+            <span class="font-medium">{name}</span>
+            <StatusTooltip content=description/>
         </div>
     }
 }
@@ -1161,7 +1165,7 @@ pub fn App() -> impl IntoView {
     // UI state
     let (active_tab, set_active_tab) = create_signal(ActiveTab::Simulation);
     let (dark_mode, set_dark_mode) = create_signal(false);
-    let (selected_auction_for_details, set_selected_auction_for_details) = create_signal(None::<AuctionResults>);
+    let (_selected_auction_for_details, set_selected_auction_for_details) = create_signal(None::<AuctionResults>);
     
     // Core configuration
     let (trust_assets, set_trust_assets) = create_signal(350000u32);
@@ -1180,9 +1184,9 @@ pub fn App() -> impl IntoView {
     // Auction state
     let (auction_number, set_auction_number) = create_signal(1usize);
     let (bidders, set_bidders) = create_signal(Vec::<Bidder>::new());
-    let (auction_results, set_auction_results) = create_signal(None::<AuctionResults>);
+    let (_auction_results, set_auction_results) = create_signal(None::<AuctionResults>);
     let (auction_history, set_auction_history) = create_signal(Vec::<AuctionResults>::new());
-    let (charts_loading, set_charts_loading) = create_signal(false);
+    let (_charts_loading, _set_charts_loading) = create_signal(false);
     
     // Computed redemption pool
     let redemption_pool = move || {
@@ -1201,7 +1205,7 @@ pub fn App() -> impl IntoView {
     };
 
     // Run auction
-    let run_auction_action = move || {
+    let _run_auction_action = move || {
         let mut current_bidders = bidders.get();
         
         // Generate bids for current auction
@@ -1235,7 +1239,7 @@ pub fn App() -> impl IntoView {
     };
     
     // Next auction with growth
-    let next_auction_action = move || {
+    let _next_auction_action = move || {
         // Apply growth rates
         let new_trust_assets = (trust_assets.get() as f64 * (1.0 + trust_assets_growth.get() as f64 / 100.0)) as u32;
         let new_redemption_percentage = std::cmp::min(
@@ -1264,7 +1268,7 @@ pub fn App() -> impl IntoView {
     };
     
     // Apply scenario template
-    let apply_scenario = move |scenario: &ScenarioTemplate| {
+    let _apply_scenario = move |scenario: &ScenarioTemplate| {
         set_trust_assets.set(scenario.trust_assets);
         set_redemption_percentage.set(scenario.redemption_percentage);
         set_num_bidders.set(scenario.num_bidders);
