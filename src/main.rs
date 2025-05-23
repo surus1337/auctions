@@ -1332,9 +1332,24 @@ pub fn App() -> impl IntoView {
                                     
                                     <button
                                         on:click=move |_| run_auction_action()
-                                        class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition"
+                                        disabled=move || auction_results.get().is_some()
+                                        class=move || format!("px-4 py-2 rounded transition {}",
+                                            if auction_results.get().is_some() {
+                                                if dark_mode.get() {
+                                                    "bg-gray-600 cursor-not-allowed text-gray-400"
+                                                } else {
+                                                    "bg-gray-300 cursor-not-allowed text-gray-500"
+                                                }
+                                            } else {
+                                                "bg-green-500 hover:bg-green-600 text-white"
+                                            }
+                                        )
                                     >
-                                        "Run Auction"
+                                        {move || if auction_results.get().is_some() {
+                                            "Auction Run - Advance to Next"
+                                        } else {
+                                            "Run Auction"
+                                        }}
                                     </button>
                                     
                                     <Show when=move || auction_results.get().is_some()>
