@@ -2047,7 +2047,7 @@ pub fn App() -> impl IntoView {
                                             <input
                                                 type="number"
                                                 prop:value=move || trust_assets.get()
-                                                on:input=move |ev| {
+                                                on:change=move |ev| {
                                                     if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                         set_trust_assets.set(val);
                                                     }
@@ -2064,7 +2064,7 @@ pub fn App() -> impl IntoView {
                                                 min="1"
                                                 max="100"
                                                 prop:value=move || redemption_percentage.get()
-                                                on:input=move |ev| {
+                                                on:change=move |ev| {
                                                     if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                         set_redemption_percentage.set(val);
                                                     }
@@ -2092,7 +2092,7 @@ pub fn App() -> impl IntoView {
                                                 min="2"
                                                 max="50"
                                                 value=move || num_bidders.get()
-                                                on:input=move |ev| {
+                                                on:change=move |ev| {
                                                     if let Ok(val) = event_target_value(&ev).parse::<usize>() {
                                                         set_num_bidders.set(val);
                                                     }
@@ -2109,7 +2109,7 @@ pub fn App() -> impl IntoView {
                                                 min="5"
                                                 max="500"
                                                 value=move || total_tokens.get()
-                                                on:input=move |ev| {
+                                                on:change=move |ev| {
                                                     if let Ok(val) = event_target_value(&ev).parse::<usize>() {
                                                         set_total_tokens.set(val);
                                                     }
@@ -2136,7 +2136,7 @@ pub fn App() -> impl IntoView {
                                             min="0"
                                             max="100"
                                             value=move || trust_assets_growth.get()
-                                            on:input=move |ev| {
+                                            on:change=move |ev| {
                                                 if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                     set_trust_assets_growth.set(val);
                                                 }
@@ -2153,7 +2153,7 @@ pub fn App() -> impl IntoView {
                                             min="0"
                                             max="100"
                                             value=move || redemption_percentage_growth.get()
-                                            on:input=move |ev| {
+                                            on:change=move |ev| {
                                                 if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                     set_redemption_percentage_growth.set(val);
                                                 }
@@ -2170,7 +2170,7 @@ pub fn App() -> impl IntoView {
                                             min="0"
                                             max="100"
                                             value=move || bidder_growth.get()
-                                            on:input=move |ev| {
+                                            on:change=move |ev| {
                                                 if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                     set_bidder_growth.set(val);
                                                 }
@@ -2187,7 +2187,7 @@ pub fn App() -> impl IntoView {
                                             min="0"
                                             max="100"
                                             value=move || token_growth.get()
-                                            on:input=move |ev| {
+                                            on:change=move |ev| {
                                                 if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                     set_token_growth.set(val);
                                                 }
