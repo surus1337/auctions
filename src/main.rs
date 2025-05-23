@@ -1092,6 +1092,70 @@ fn EnvironmentBanner() -> impl IntoView {
     }
 }
 
+// Add after the Environment enum
+#[component]
+fn StatusTooltip(content: String) -> impl IntoView {
+    view! {
+        <div class="group relative inline-block">
+            <div class="cursor-help text-gray-400 hover:text-gray-600">"ⓘ"</div>
+            <div class="invisible group-hover:visible absolute z-50 p-2 text-sm bg-gray-800 text-white rounded shadow-lg -top-2 left-6 w-48">
+                {content}
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn MarketConditionBadge(condition: MarketCondition) -> impl IntoView {
+    let (bg_color, text_color, icon) = match condition {
+        MarketCondition::Bull => ("bg-green-100", "text-green-800", "📈"),
+        MarketCondition::Bear => ("bg-red-100", "text-red-800", "📉"),
+        MarketCondition::Volatile => ("bg-yellow-100", "text-yellow-800", "⚡"),
+        MarketCondition::Neutral => ("bg-gray-100", "text-gray-800", "➖"),
+    };
+    
+    view! {
+        <div class=format!("flex items-center gap-2 px-3 py-1 rounded {} {}", bg_color, text_color)>
+            <span class="text-lg">{icon}</span>
+            <span class="font-medium">{condition.name()}</span>
+            <StatusTooltip content=condition.description().to_string()/>
+        </div>
+    }
+}
+
+#[component]
+fn MetricCard(
+    title: String,
+    value: String,
+    tooltip: Option<String>,
+    trend: Option<(f64, String)>, // (percentage, label)
+) -> impl IntoView {
+    view! {
+        <div class="p-3 rounded shadow bg-white dark:bg-gray-700">
+            <div class="flex items-center gap-1">
+                <div class="text-sm text-gray-600 dark:text-gray-400">{title}</div>
+                {move || tooltip.as_ref().map(|t| view! { <StatusTooltip content=t.clone()/> })}
+            </div>
+            <div class="text-lg font-semibold mt-1">{value}</div>
+            {move || trend.as_ref().map(|(pct, label)| {
+                let (color, icon) = if *pct > 0.0 {
+                    ("text-green-600", "↑")
+                } else if *pct < 0.0 {
+                    ("text-red-600", "↓")
+                } else {
+                    ("text-gray-600", "→")
+                };
+                view! {
+                    <div class=format!("text-xs mt-1 flex items-center gap-1 {}", color)>
+                        <span>{icon}</span>
+                        <span>{format!("{:.1}% {}", pct.abs(), label)}</span>
+                    </div>
+                }
+            })}
+        </div>
+    }
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     // UI state
@@ -1238,27 +1302,43 @@ pub fn App() -> impl IntoView {
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-2">
                             <span class="text-sm">"Market:"</span>
-                            <select
-                                value=move || format!("{:?}", market_condition.get())
-                                on:change=move |ev| {
-                                    let value = event_target_value(&ev);
-                                    let condition = match value.as_str() {
-                                        "Bull" => MarketCondition::Bull,
-                                        "Bear" => MarketCondition::Bear,
-                                        "Volatile" => MarketCondition::Volatile,
-                                        _ => MarketCondition::Neutral,
-                                    };
-                                    set_market_condition.set(condition);
-                                }
-                                class=move || format!("px-3 py-1 rounded border {}",
-                                    if dark_mode.get() { "bg-gray-800 border-gray-600" } else { "bg-white border-gray-300" }
-                                )
-                            >
-                                <option value="Bull">"Bull Market"</option>
-                                <option value="Neutral">"Neutral Market"</option>
-                                <option value="Bear">"Bear Market"</option>
-                                <option value="Volatile">"Volatile Market"</option>
-                            </select>
+                            <div class="relative">
+                                <select
+                                    value=move || format!("{:?}", market_condition.get())
+                                    on:change=move |ev| {
+                                        let value = event_target_value(&ev);
+                                        let condition = match value.as_str() {
+                                            "Bull" => MarketCondition::Bull,
+                                            "Bear" => MarketCondition::Bear,
+                                            "Volatile" => MarketCondition::Volatile,
+                                            _ => MarketCondition::Neutral,
+                                        };
+                                        set_market_condition.set(condition);
+                                    }
+                                    class=move || format!("appearance-none pl-10 pr-8 py-1 rounded border {}",
+                                        if dark_mode.get() { "bg-gray-800 border-gray-600" } else { "bg-white border-gray-300" }
+                                    )
+                                >
+                                    <option value="Bull">"Bull Market"</option>
+                                    <option value="Neutral">"Neutral Market"</option>
+                                    <option value="Bear">"Bear Market"</option>
+                                    <option value="Volatile">"Volatile Market"</option>
+                                </select>
+                                <div class="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    {move || {
+                                        let (_, _, icon) = match market_condition.get() {
+                                            MarketCondition::Bull => ("", "", "📈"),
+                                            MarketCondition::Bear => ("", "", "📉"),
+                                            MarketCondition::Volatile => ("", "", "⚡"),
+                                            MarketCondition::Neutral => ("", "", "➖"),
+                                        };
+                                        view! { <span class="text-lg">{icon}</span> }
+                                    }}
+                                </div>
+                                <div class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <span class="text-gray-400">"▼"</span>
+                                </div>
+                            </div>
                         </div>
                         <button
                             on:click=move |_| set_dark_mode.update(|d| *d = !*d)
@@ -1348,10 +1428,9 @@ pub fn App() -> impl IntoView {
                             )>
                                 <div class="flex justify-between items-center mb-2">
                                     <h2 class="text-xl font-semibold">{format!("Auction #{}", auction_number.get())}</h2>
-                                    <div class=move || format!("px-3 py-1 rounded text-sm {}",
-                                        if dark_mode.get() { "bg-gray-700" } else { "bg-white" }
-                                    )>
-                                        {move || market_condition.get().name().to_string()}
+                                    <div class="flex items-center gap-2">
+                                        <MarketConditionBadge condition=market_condition.get()/>
+                                        <StatusTooltip content="Market conditions affect bidder behavior and prices. Hover over the market condition badge for details.".to_string()/>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1376,7 +1455,7 @@ pub fn App() -> impl IntoView {
                                     )>
                                         <div class=move || format!("text-sm {}",
                                             if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                        )>"Bidders"</div>
+                                        )>"Active Bidders"</div>
                                         <div class="text-lg font-semibold">{num_bidders.get()}</div>
                                     </div>
                                     <div class=move || format!("p-3 rounded shadow {}",
@@ -1394,938 +1473,135 @@ pub fn App() -> impl IntoView {
                             <div class=move || format!("p-4 rounded-lg shadow mb-6 {}",
                                 if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
                             )>
-                                <h3 class="text-lg font-semibold mb-3">"Actions"</h3>
-                                <div class="flex gap-3 flex-wrap">
-                                    <button
-                                        on:click=move |_| generate_bidders_action()
-                                        class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
-                                    >
-                                        "Regenerate Bidders"
-                                    </button>
-                                    
-                                    <button
-                                        on:click=move |_| run_auction_action()
-                                        disabled=move || auction_results.get().is_some()
-                                        class=move || format!("px-4 py-2 rounded transition {}",
-                                            if auction_results.get().is_some() {
-                                                if dark_mode.get() {
-                                                    "bg-gray-600 cursor-not-allowed text-gray-400"
-                                                } else {
-                                                    "bg-gray-300 cursor-not-allowed text-gray-500"
+                                // Growth Rates
+                                <div class="mb-8">
+                                    <h3 class=move || format!("text-lg font-semibold mb-4 {}",
+                                        if dark_mode.get() { "text-purple-400" } else { "text-purple-600" }
+                                    )>"Growth Rates (per auction)"</h3>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2">"Trust Assets Growth %"</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value=move || trust_assets_growth.get()
+                                                on:change=move |ev| {
+                                                    if let Ok(val) = event_target_value(&ev).parse::<u32>() {
+                                                        set_trust_assets_growth.set(val);
+                                                    }
                                                 }
-                                            } else {
-                                                "bg-green-500 hover:bg-green-600 text-white"
-                                            }
-                                        )
-                                    >
-                                        {move || if auction_results.get().is_some() {
-                                            "Auction Run - Advance to Next"
-                                        } else {
-                                            "Run Auction"
-                                        }}
-                                    </button>
-                                    
-                                    <Show when=move || auction_results.get().is_some()>
-                                        <button
-                                            on:click=move |_| next_auction_action()
-                                            class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded transition"
-                                        >
-                                            "Next Auction"
-                                        </button>
-                                    </Show>
-                                    
+                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
+                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
+                                                )
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2">"Redemption % Growth"</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value=move || redemption_percentage_growth.get()
+                                                on:change=move |ev| {
+                                                    if let Ok(val) = event_target_value(&ev).parse::<u32>() {
+                                                        set_redemption_percentage_growth.set(val);
+                                                    }
+                                                }
+                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
+                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
+                                                )
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2">"Bidder Growth %"</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value=move || bidder_growth.get()
+                                                on:change=move |ev| {
+                                                    if let Ok(val) = event_target_value(&ev).parse::<u32>() {
+                                                        set_bidder_growth.set(val);
+                                                    }
+                                                }
+                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
+                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
+                                                )
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2">"Token Growth %"</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value=move || token_growth.get()
+                                                on:change=move |ev| {
+                                                    if let Ok(val) = event_target_value(&ev).parse::<u32>() {
+                                                        set_token_growth.set(val);
+                                                    }
+                                                }
+                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
+                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
+                                                )
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                // Simulation Options
+                                <div class="mb-8">
+                                    <h3 class=move || format!("text-lg font-semibold mb-4 {}",
+                                        if dark_mode.get() { "text-orange-400" } else { "text-orange-600" }
+                                    )>"Simulation Options"</h3>
+                                    <div class="space-y-4">
+                                        <label class="flex items-center space-x-3">
+                                            <input
+                                                type="checkbox"
+                                                checked=move || use_profiles.get()
+                                                on:change=move |ev| {
+                                                    set_use_profiles.set(event_target_checked(&ev));
+                                                }
+                                                class="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                            />
+                                            <div>
+                                                <span class="text-sm font-medium">"Use Bidder Profiles & Learning"</span>
+                                                <p class=move || format!("text-xs {}",
+                                                    if dark_mode.get() { "text-gray-400" } else { "text-gray-500" }
+                                                )>"Enable different bidding strategies that adapt over time"</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                // Apply button
+                                <div class=move || format!("border-t pt-6 {}",
+                                    if dark_mode.get() { "border-gray-600" } else { "border-gray-200" }
+                                )>
                                     <button
                                         on:click=move |_| {
-                                            // Reset everything
-                                            set_trust_assets.set(350000);
-                                            set_redemption_percentage.set(5);
-                                            set_num_bidders.set(30);
-                                            set_total_tokens.set(60000);
-                                            set_trust_assets_growth.set(30);
-                                            set_redemption_percentage_growth.set(20);
-                                            set_bidder_growth.set(30);
-                                            set_token_growth.set(40);
+                                            // Reset auction state
                                             set_auction_number.set(1);
                                             set_auction_history.set(Vec::new());
-                                            set_market_condition.set(MarketCondition::Neutral);
-                                            // Generate fresh bidders
-                                            let new_bidders = generate_initial_bidders(30, 60000, true);
+                                            set_selected_auction_for_details.set(None);
+                                            
+                                            // Generate new bidders
+                                            let new_bidders = generate_initial_bidders(
+                                                num_bidders.get(),
+                                                total_tokens.get(),
+                                                use_profiles.get()
+                                            );
                                             set_bidders.set(new_bidders);
+                                            
+                                            // Return to simulation tab
+                                            set_active_tab.set(ActiveTab::Simulation);
                                         }
-                                        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
+                                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition"
                                     >
-                                        "Reset"
+                                        "Apply & Return to Simulation"
                                     </button>
                                 </div>
-                            </div>
-                            
-                            // Current Bidders
-                            <div class=move || format!("p-4 rounded-lg shadow mb-6 {}",
-                                if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                            )>
-                                <h3 class="text-lg font-semibold mb-3">"Current Bidders"</h3>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full">
-                                        <thead>
-                                            <tr class=move || if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Bidder"</th>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Profile"</th>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Tokens"</th>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Success Rate"</th>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Total Revenue"</th>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Auctions"</th>
-                                                <th class="px-4 py-2 text-left text-sm font-medium">"Learning"</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {move || bidders.get().into_iter().map(|bidder| {
-                                                view! {
-                                                    <tr class=move || format!("border-b {}",
-                                                        if dark_mode.get() { "border-gray-700" } else { "border-gray-200" }
-                                                    )>
-                                                        <td class="px-4 py-2">{bidder.name}</td>
-                                                        <td class="px-4 py-2">
-                                                            <span class=format!("px-2 py-1 {} text-white text-xs rounded", bidder.profile.color_class())>
-                                                                {bidder.profile.to_string()}
-                                                            </span>
-                                                        </td>
-                                                        <td class="px-4 py-2">{bidder.tokens}</td>
-                                                        <td class="px-4 py-2">
-                                                            <span class=format!("px-2 py-1 rounded text-xs {}", 
-                                                                if bidder.success_rate > 70.0 { "bg-green-100 text-green-800" }
-                                                                else if bidder.success_rate > 30.0 { "bg-yellow-100 text-yellow-800" }
-                                                                else { "bg-red-100 text-red-800" }
-                                                            )>
-                                                                {format!("{:.0}%", bidder.success_rate)}
-                                                            </span>
-                                                        </td>
-                                                        <td class="px-4 py-2">{format!("${}", bidder.total_revenue)}</td>
-                                                        <td class="px-4 py-2">{bidder.auction_history.len()}</td>
-                                                        <td class="px-4 py-2">
-                                                            <div class="text-xs text-gray-500">
-                                                                {format!("Price: ${}-${}", 
-                                                                    bidder.adapted_price_range.0,
-                                                                    bidder.adapted_price_range.1
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            }).collect::<Vec<_>>()}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            // Auction Results
-                            <Show when=move || auction_results.get().is_some()>
-                                {move || {
-                                    let results = auction_results.get().unwrap();
-                                    view! {
-                                        <div class=move || format!("p-6 rounded-lg shadow mb-6 {}",
-                                            if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                                        )>
-                                            <h2 class="text-xl font-semibold mb-4">"Auction Results"</h2>
-                                            
-                                            // Summary
-                                            <div class="mb-6">
-                                                <h3 class="text-lg font-semibold mb-3">"Summary"</h3>
-                                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                    <div class=move || format!("p-3 rounded {}",
-                                                        if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                    )>
-                                                        <div class=move || format!("text-sm {}",
-                                                            if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                        )>"Trust Pool"</div>
-                                                        <div class="text-lg font-semibold">{format!("${}", redemption_pool())}</div>
-                                                    </div>
-                                                    <div class=move || format!("p-3 rounded {}",
-                                                        if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                    )>
-                                                        <div class=move || format!("text-sm {}",
-                                                            if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                        )>"Money Spent"</div>
-                                                        <div class="text-lg font-semibold">{format!("${}", results.total_spent)}</div>
-                                                    </div>
-                                                    <div class=move || format!("p-3 rounded {}",
-                                                        if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                    )>
-                                                        <div class=move || format!("text-sm {}",
-                                                            if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                        )>"Tokens Purchased"</div>
-                                                        <div class="text-lg font-semibold">{results.tokens_purchased}</div>
-                                                    </div>
-                                                    <div class=move || format!("p-3 rounded {}",
-                                                        if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                    )>
-                                                        <div class=move || format!("text-sm {}",
-                                                            if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                        )>"Avg. Price"</div>
-                                                        <div class="text-lg font-semibold">{format!("${:.0}", results.average_purchase_price)}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            // Bidder Results Table
-                                            <div class="mb-6">
-                                                <h3 class="text-lg font-semibold mb-3">"Bidder Results"</h3>
-                                                <div class="overflow-x-auto">
-                                                    <table class="min-w-full">
-                                                        <thead>
-                                                            <tr class=move || if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Bidder"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Profile"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Initial"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Offered"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Sold"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Held"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Left"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"New"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Revenue"</th>
-                                                                <th class="px-4 py-2 text-left text-sm font-medium">"Success"</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {results.bidder_results.clone().into_iter().map(|result| {
-                                                                view! {
-                                                                    <tr class=move || format!("border-b {}",
-                                                                        if dark_mode.get() { "border-gray-700" } else { "border-gray-200" }
-                                                                    )>
-                                                                        <td class="px-4 py-2">{result.name}</td>
-                                                                        <td class="px-4 py-2">
-                                                                            <span class=format!("px-2 py-1 {} text-white text-xs rounded", result.profile.color_class())>
-                                                                                {result.profile.to_string()}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td class="px-4 py-2">{result.initial_tokens}</td>
-                                                                        <td class="px-4 py-2">{result.initial_tokens - result.tokens_held}</td>
-                                                                        <td class="px-4 py-2">{result.tokens_sold}</td>
-                                                                        <td class="px-4 py-2">{result.tokens_held}</td>
-                                                                        <td class="px-4 py-2">{result.tokens_left}</td>
-                                                                        <td class="px-4 py-2">
-                                                                            {if result.new_tokens > 0 {
-                                                                                format!("+{}", result.new_tokens)
-                                                                            } else {
-                                                                                "".to_string()
-                                                                            }}
-                                                                        </td>
-                                                                        <td class="px-4 py-2">{format!("${}", result.revenue)}</td>
-                                                                        <td class="px-4 py-2">
-                                                                            <span class=format!("px-2 py-1 rounded text-xs {}", 
-                                                                                if result.success_rate > 70.0 { "bg-green-100 text-green-800" }
-                                                                                else if result.success_rate > 30.0 { "bg-yellow-100 text-yellow-800" }
-                                                                                else { "bg-red-100 text-red-800" }
-                                                                            )>
-                                                                                {format!("{:.0}%", result.success_rate)}
-                                                                            </span>
-                                                                        </td>
-                                                                    </tr>
-                                                                }
-                                                            }).collect::<Vec<_>>()}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                }}
-                            </Show>
-                            
-                            // Auction History
-                            <Show when=move || !auction_history.get().is_empty()>
-                                <div class=move || format!("p-6 rounded-lg shadow {}",
-                                    if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                                )>
-                                    <h2 class="text-xl font-semibold mb-4">"Auction History"</h2>
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full">
-                                            <thead>
-                                                <tr class=move || if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Auction"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Market"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Trust Assets"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Pool"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Spent"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Tokens Sold"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Avg Price"</th>
-                                                    <th class="px-4 py-2 text-left text-sm font-medium">"Timestamp"</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {move || auction_history.get().into_iter().map(|auction| {
-                                                    let auction_clone = auction.clone();
-                                                    let market_condition_name = auction.market_condition.name().to_string();
-                                                    let timestamp = auction.timestamp.clone();
-                                                    let is_selected = selected_auction_for_details.get()
-                                                        .map(|selected| selected.auction_number == auction.auction_number)
-                                                        .unwrap_or(false);
-                                                    
-                                                    view! {
-                                                        <tr class=move || format!("border-b cursor-pointer hover:bg-gray-50 {}",
-                                                            if dark_mode.get() { "border-gray-700 hover:bg-gray-700" } else { "border-gray-200" }
-                                                        )
-                                                            on:click=move |_| {
-                                                                set_selected_auction_for_details.set(Some(auction_clone.clone()));
-                                                                set_active_tab.set(ActiveTab::BidDetails);
-                                                            }
-                                                        >
-                                                            <td class="px-4 py-2">{format!("#{}", auction.auction_number)}</td>
-                                                            <td class="px-4 py-2">
-                                                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">
-                                                                    {market_condition_name}
-                                                                </span>
-                                                            </td>
-                                                            <td class="px-4 py-2">{format!("${}", auction.trust_assets)}</td>
-                                                            <td class="px-4 py-2">{format!("${}", auction.redemption_pool)}</td>
-                                                            <td class="px-4 py-2">{format!("${}", auction.total_spent)}</td>
-                                                            <td class="px-4 py-2">{auction.tokens_purchased}</td>
-                                                            <td class="px-4 py-2">{format!("${:.0}", auction.average_purchase_price)}</td>
-                                                            <td class="px-4 py-2 text-xs">{timestamp.clone()}</td>
-                                                        </tr>
-                                                    }
-                                                }).collect::<Vec<_>>()}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </Show>
-                        </div>
-                    </Show>
-                    
-                    // Analytics Tab
-                    <Show when=move || active_tab.get() == ActiveTab::Analytics>
-                        <div class=move || format!("p-6 rounded-lg shadow {}",
-                            if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                        )>
-                            <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-2xl font-semibold">"Market Analytics"</h2>
-                                {move || if !auction_history.get().is_empty() {
-                                    view! {
-                                        <div class="flex gap-2">
-                                            <button
-                                                on:click=move |_| {
-                                                    let history = auction_history.get();
-                                                    export_auction_history_json(&history);
-                                                }
-                                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition"
-                                            >
-                                                "Export JSON"
-                                            </button>
-                                            <button
-                                                on:click=move |_| {
-                                                    let history = auction_history.get();
-                                                    export_auction_history_csv(&history);
-                                                }
-                                                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm transition"
-                                            >
-                                                "Export History CSV"
-                                            </button>
-                                            <button
-                                                on:click=move |_| {
-                                                    let history = auction_history.get();
-                                                    export_bidder_summary_csv(&history);
-                                                }
-                                                class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm transition"
-                                            >
-                                                "Export Bidders CSV"
-                                            </button>
-                                        </div>
-                                    }.into_view()
-                                } else {
-                                    view! { <div></div> }.into_view()
-                                }}
-                            </div>
-                            
-                            {move || if auction_history.get().is_empty() {
-                                view! {
-                                    <div class="text-center py-12">
-                                        <div class="text-gray-400 text-6xl mb-4">"📈"</div>
-                                        <h3 class=move || format!("text-xl font-medium mb-2 {}",
-                                            if dark_mode.get() { "text-gray-300" } else { "text-gray-600" }
-                                        )>"No Data Available"</h3>
-                                        <p class=move || format!("mb-6 {}",
-                                            if dark_mode.get() { "text-gray-400" } else { "text-gray-500" }
-                                        )>"Run some auctions to see detailed analytics"</p>
-                                        <button
-                                            on:click=move |_| set_active_tab.set(ActiveTab::Simulation)
-                                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
-                                        >
-                                            "Go to Simulation"
-                                        </button>
-                                    </div>
-                                }.into_view()
-                            } else {
-                                // Draw charts when history is available
-                                create_effect(move |_| {
-                                    let history = auction_history.get();
-                                    if !history.is_empty() && active_tab.get() == ActiveTab::Analytics {
-                                        set_charts_loading.set(true);
-                                        // Give DOM time to render canvases
-                                        let history_clone = history.clone();
-                                        set_timeout(
-                                            move || {
-                                                let _ = draw_price_history_chart("price-history-chart", &history_clone);
-                                                let _ = draw_trading_volume_chart("trading-volume-chart", &history_clone);
-                                                let _ = draw_bidder_performance_chart("bidder-performance-chart", &history_clone);
-                                                set_charts_loading.set(false);
-                                            },
-                                            std::time::Duration::from_millis(100),
-                                        );
-                                    }
-                                });
-                                
-                                view! {
-                                    <div class="space-y-8">
-                                        // Summary Statistics
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Summary Statistics"</h3>
-                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                {move || {
-                                                    let history = auction_history.get();
-                                                    let total_tokens: usize = history.iter().map(|a| a.tokens_purchased).sum();
-                                                    let total_spent: u32 = history.iter().map(|a| a.total_spent).sum();
-                                                    let avg_price = if total_tokens > 0 {
-                                                        total_spent / total_tokens as u32
-                                                    } else {
-                                                        0
-                                                    };
-                                                    
-                                                    view! {
-                                                        <>
-                                                            <div class=move || format!("p-4 rounded {}",
-                                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                            )>
-                                                                <div class="text-2xl font-bold text-blue-600">{history.len()}</div>
-                                                                <div class=move || format!("text-sm {}",
-                                                                    if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                                )>"Total Auctions"</div>
-                                                            </div>
-                                                            <div class=move || format!("p-4 rounded {}",
-                                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                            )>
-                                                                <div class="text-2xl font-bold text-green-600">{total_tokens}</div>
-                                                                <div class=move || format!("text-sm {}",
-                                                                    if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                                )>"Total Tokens Traded"</div>
-                                                            </div>
-                                                            <div class=move || format!("p-4 rounded {}",
-                                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-50" }
-                                                            )>
-                                                                <div class="text-2xl font-bold text-purple-600">{format!("${}", avg_price)}</div>
-                                                                <div class=move || format!("text-sm {}",
-                                                                    if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                                )>"Overall Avg Price"</div>
-                                                            </div>
-                                                        </>
-                                                    }
-                                                }}
-                                            </div>
-                                        </div>
-
-                                        // Price History Chart
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Price & Pool Trends"</h3>
-                                            <div class=move || format!("p-4 rounded relative {}",
-                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
-                                            )>
-                                                <Show when=move || charts_loading.get()>
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
-                                                        <div class="text-lg">"Loading charts..."</div>
-                                                    </div>
-                                                </Show>
-                                                <canvas id="price-history-chart"></canvas>
-                                            </div>
-                                        </div>
-                                        
-                                        // Trading Volume Chart
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Trading Volume"</h3>
-                                            <div class=move || format!("p-4 rounded relative {}",
-                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
-                                            )>
-                                                <Show when=move || charts_loading.get()>
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
-                                                        <div class="text-lg">"Loading charts..."</div>
-                                                    </div>
-                                                </Show>
-                                                <canvas id="trading-volume-chart"></canvas>
-                                            </div>
-                                        </div>
-                                        
-                                        // Bidder Performance Chart
-                                        <div>
-                                            <h3 class="text-lg font-semibold mb-4">"Top Bidder Performance"</h3>
-                                            <div class=move || format!("p-4 rounded relative {}",
-                                                if dark_mode.get() { "bg-gray-700" } else { "bg-gray-100" }
-                                            )>
-                                                <Show when=move || charts_loading.get()>
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
-                                                        <div class="text-lg">"Loading charts..."</div>
-                                                    </div>
-                                                </Show>
-                                                <canvas id="bidder-performance-chart"></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }.into_view()
-                            }}
-                        </div>
-                    </Show>
-                    
-                    // Bid Details Tab
-                    <Show when=move || active_tab.get() == ActiveTab::BidDetails>
-                        <div class=move || format!("p-6 rounded-lg shadow {}",
-                            if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                        )>
-                            <h2 class="text-2xl font-semibold mb-6">"Detailed Bid Analysis"</h2>
-                            
-                            {move || if auction_history.get().is_empty() {
-                                view! {
-                                    <div class="text-center py-12">
-                                        <div class="text-gray-400 text-6xl mb-4">"📊"</div>
-                                        <h3 class=move || format!("text-xl font-medium mb-2 {}",
-                                            if dark_mode.get() { "text-gray-300" } else { "text-gray-600" }
-                                        )>"No Auction Data Available"</h3>
-                                        <p class=move || format!("mb-6 {}",
-                                            if dark_mode.get() { "text-gray-400" } else { "text-gray-500" }
-                                        )>"Run an auction to see detailed bid information"</p>
-                                        <button
-                                            on:click=move |_| set_active_tab.set(ActiveTab::Simulation)
-                                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
-                                        >
-                                            "Go to Simulation"
-                                        </button>
-                                    </div>
-                                }.into_view()
-                            } else {
-                                view! {
-                                    <div>
-                                        // Auction Selector
-                                        <div class="mb-6">
-                                            <h3 class="text-lg font-semibold mb-3">"Select Auction to Analyze"</h3>
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                                {move || auction_history.get().into_iter().map(|auction| {
-                                                    let auction_clone = auction.clone();
-                                                    let market_condition_name = auction.market_condition.name().to_string();
-                                                    let timestamp = auction.timestamp.clone();
-                                                    let is_selected = selected_auction_for_details.get()
-                                                        .map(|selected| selected.auction_number == auction.auction_number)
-                                                        .unwrap_or(false);
-                                                    
-                                                    view! {
-                                                        <button
-                                                            on:click=move |_| {
-                                                                set_selected_auction_for_details.set(Some(auction_clone.clone()));
-                                                            }
-                                                            class=move || format!(
-                                                                "p-4 rounded-lg border-2 text-left transition-all {}",
-                                                                if is_selected {
-                                                                    if dark_mode.get() {
-                                                                        "border-blue-500 bg-blue-900 shadow-lg transform scale-105"
-                                                                    } else {
-                                                                        "border-blue-500 bg-blue-50 shadow-lg transform scale-105"
-                                                                    }
-                                                                } else if dark_mode.get() {
-                                                                    "border-gray-600 bg-gray-700 hover:border-blue-400 hover:bg-gray-600"
-                                                                } else {
-                                                                    "border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50"
-                                                                }
-                                                            )
-                                                        >
-                                                            <div class="flex justify-between items-start mb-2">
-                                                                <h4 class="font-semibold">{format!("Auction #{}", auction.auction_number)}</h4>
-                                                                <span class=move || format!("text-xs px-2 py-1 rounded {}",
-                                                                    match auction.market_condition {
-                                                                        MarketCondition::Bull => "bg-green-100 text-green-800",
-                                                                        MarketCondition::Bear => "bg-red-100 text-red-800",
-                                                                        MarketCondition::Volatile => "bg-yellow-100 text-yellow-800",
-                                                                        MarketCondition::Neutral => "bg-gray-100 text-gray-800",
-                                                                    }
-                                                                )>
-                                                                    {market_condition_name.clone()}
-                                                                </span>
-                                                            </div>
-                                                            <div class=move || format!("text-sm space-y-1 {}",
-                                                                if dark_mode.get() { "text-gray-300" } else { "text-gray-600" }
-                                                            )>
-                                                                <div class="flex justify-between">
-                                                                    <span>"Tokens:"</span>
-                                                                    <span class="font-medium">{auction.tokens_purchased}</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span>"Avg Price:"</span>
-                                                                    <span class="font-medium">{format!("${:.0}", auction.average_purchase_price)}</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span>"Pool Used:"</span>
-                                                                    <span class="font-medium">
-                                                                        {format!("{}%", (auction.total_spent as f64 / auction.redemption_pool as f64 * 100.0) as u32)}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div class=move || format!("text-xs mt-2 {}",
-                                                                if dark_mode.get() { "text-gray-400" } else { "text-gray-500" }
-                                                            )>
-                                                                {timestamp.clone()}
-                                                            </div>
-                                                        </button>
-                                                    }
-                                                }).collect::<Vec<_>>()}
-                                            </div>
-                                        </div>
-                                        
-                                        // Selected Auction Details
-                                        {move || if let Some(auction) = selected_auction_for_details.get() {
-                                            let market_condition_name = auction.market_condition.name().to_string();
-                                            view! {
-                                                <div>
-                                                    // Auction Summary
-                                                    <div class=move || format!("p-4 rounded-lg mb-6 {}",
-                                                        if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                                                    )>
-                                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                            <div>"Trust Assets: "{format!("${}", auction.trust_assets)}</div>
-                                                            <div>"Redemption Pool: "{format!("${}", auction.redemption_pool)}</div>
-                                                            <div>"Market: "{market_condition_name}</div>
-                                                            <div>"Time: "{auction.timestamp.clone()}</div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    // Bid Lists
-                                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                                        // Accepted Bids
-                                                        <div class=move || format!("p-4 rounded-lg border {}",
-                                                            if dark_mode.get() { "bg-gray-700 border-green-600" } else { "bg-green-50 border-green-200" }
-                                                        )>
-                                                            <h4 class=move || format!("text-lg font-semibold mb-3 {}",
-                                                                if dark_mode.get() { "text-green-400" } else { "text-green-800" }
-                                                            )>
-                                                                {format!("Accepted Bids ({})", auction.cleared_bids.len())}
-                                                            </h4>
-                                                            <div class="space-y-2 max-h-96 overflow-y-auto">
-                                                                {auction.cleared_bids.clone().into_iter().enumerate().map(|(idx, bid)| {
-                                                                    view! {
-                                                                        <div class=move || format!("p-3 rounded border {}",
-                                                                            if dark_mode.get() { "bg-gray-800 border-green-700" } else { "bg-white border-green-100" }
-                                                                        )>
-                                                                            <div class="flex justify-between items-center">
-                                                                                <div>
-                                                                                    <div class=move || format!("font-medium {}",
-                                                                                        if dark_mode.get() { "text-green-400" } else { "text-green-800" }
-                                                                                    )>{bid.bidder_name}</div>
-                                                                                    <div class=move || format!("text-sm {}",
-                                                                                        if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                                                    )>{format!("Rank: #{}", idx + 1)}</div>
-                                                                                </div>
-                                                                                <div class="text-right">
-                                                                                    <div class="text-lg font-bold text-green-600">{format!("${}", bid.price)}</div>
-                                                                                    <div class="text-xs text-gray-500">"Accepted"</div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    }
-                                                                }).collect::<Vec<_>>()}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        // Rejected Bids
-                                                        <div class=move || format!("p-4 rounded-lg border {}",
-                                                            if dark_mode.get() { "bg-gray-700 border-red-600" } else { "bg-red-50 border-red-200" }
-                                                        )>
-                                                            <h4 class=move || format!("text-lg font-semibold mb-3 {}",
-                                                                if dark_mode.get() { "text-red-400" } else { "text-red-800" }
-                                                            )>
-                                                                {format!("Rejected Bids ({})", auction.rejected_bids.len())}
-                                                            </h4>
-                                                            <div class="space-y-2 max-h-96 overflow-y-auto">
-                                                                {auction.rejected_bids.clone().into_iter().enumerate().map(|(idx, bid)| {
-                                                                    view! {
-                                                                        <div class=move || format!("p-3 rounded border {}",
-                                                                            if dark_mode.get() { "bg-gray-800 border-red-700" } else { "bg-white border-red-100" }
-                                                                        )>
-                                                                            <div class="flex justify-between items-center">
-                                                                                <div>
-                                                                                    <div class=move || format!("font-medium {}",
-                                                                                        if dark_mode.get() { "text-red-400" } else { "text-red-800" }
-                                                                                    )>{bid.bidder_name}</div>
-                                                                                    <div class=move || format!("text-sm {}",
-                                                                                        if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                                                    )>
-                                                                                        {format!("Would have been rank #{}", auction.cleared_bids.len() + idx + 1)}
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div class="text-right">
-                                                                                    <div class="text-lg font-bold text-red-600">{format!("${}", bid.price)}</div>
-                                                                                    <div class="text-xs text-gray-500">"Rejected"</div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    }
-                                                                }).collect::<Vec<_>>()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }.into_view()
-                                        } else {
-                                            view! {
-                                                <div class=move || format!("mt-8 p-8 text-center rounded-lg border-2 border-dashed {}",
-                                                    if dark_mode.get() { "border-gray-600 text-gray-400" } else { "border-gray-300 text-gray-500" }
-                                                )>
-                                                    <div class="text-5xl mb-4">"👆"</div>
-                                                    <p class="text-lg">"Select an auction above to view detailed bid information"</p>
-                                                </div>
-                                            }.into_view()
-                                        }}
-                                    </div>
-                                }.into_view()
-                            }}
-                        </div>
-                    </Show>
-                    
-                    // Configuration Tab
-                    <Show when=move || active_tab.get() == ActiveTab::Configuration>
-                        <div class=move || format!("p-6 rounded-lg shadow {}",
-                            if dark_mode.get() { "bg-gray-800" } else { "bg-white" }
-                        )>
-                            <h2 class="text-2xl font-semibold mb-6">"Simulation Configuration"</h2>
-                            
-                            // Scenario Templates
-                            <div class="mb-8">
-                                <h3 class=move || format!("text-lg font-semibold mb-4 {}",
-                                    if dark_mode.get() { "text-blue-400" } else { "text-blue-600" }
-                                )>"Scenario Templates"</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {SCENARIO_TEMPLATES.iter().map(|scenario| {
-                                        view! {
-                                            <button
-                                                on:click=move |_| apply_scenario(scenario)
-                                                class=move || format!("p-4 rounded-lg border text-left transition-colors {}",
-                                                    if dark_mode.get() {
-                                                        "border-gray-600 hover:border-blue-500 hover:bg-gray-700"
-                                                    } else {
-                                                        "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                                                    }
-                                                )
-                                            >
-                                                <h4 class="font-semibold mb-2">{scenario.name}</h4>
-                                                <div class=move || format!("text-xs space-y-1 {}",
-                                                    if dark_mode.get() { "text-gray-400" } else { "text-gray-600" }
-                                                )>
-                                                    <div>{format!("Assets: ${}", scenario.trust_assets)}</div>
-                                                    <div>{format!("Redemption: {}%", scenario.redemption_percentage)}</div>
-                                                    <div>{format!("Bidders: {}", scenario.num_bidders)}</div>
-                                                    <div>{format!("Tokens: {}", scenario.total_tokens)}</div>
-                                                </div>
-                                            </button>
-                                        }
-                                    }).collect::<Vec<_>>()}
-                                </div>
-                            </div>
-                            
-                            // Configuration Sections
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                                <div>
-                                    <h3 class=move || format!("text-lg font-semibold mb-4 {}",
-                                        if dark_mode.get() { "text-blue-400" } else { "text-blue-600" }
-                                    )>"Assets & Pool"</h3>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2">"Trust Assets"</label>
-                                            <input
-                                                type="number"
-                                                prop:value=move || trust_assets.get()
-                                                on:change=move |ev| {
-                                                    if let Ok(val) = event_target_value(&ev).parse::<u32>() {
-                                                        set_trust_assets.set(val);
-                                                    }
-                                                }
-                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 {}",
-                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                                )
-                                            />
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2">"Redemption Percentage"</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="100"
-                                                prop:value=move || redemption_percentage.get()
-                                                on:change=move |ev| {
-                                                    if let Ok(val) = event_target_value(&ev).parse::<u32>() {
-                                                        set_redemption_percentage.set(val);
-                                                    }
-                                                }
-                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 {}",
-                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                                )
-                                            />
-                                            <p class=move || format!("text-sm mt-1 {}",
-                                                if dark_mode.get() { "text-blue-400" } else { "text-blue-600" }
-                                            )>{format!("Redemption Pool: ${}", redemption_pool())}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <h3 class=move || format!("text-lg font-semibold mb-4 {}",
-                                        if dark_mode.get() { "text-green-400" } else { "text-green-600" }
-                                    )>"Auction Parameters"</h3>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2">"Number of Bidders"</label>
-                                            <input
-                                                type="number"
-                                                min="2"
-                                                max="50"
-                                                value=move || num_bidders.get()
-                                                on:change=move |ev| {
-                                                    if let Ok(val) = event_target_value(&ev).parse::<usize>() {
-                                                        set_num_bidders.set(val);
-                                                    }
-                                                }
-                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 {}",
-                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                                )
-                                            />
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2">"Total Tokens"</label>
-                                            <input
-                                                type="number"
-                                                min="5"
-                                                max="500"
-                                                value=move || total_tokens.get()
-                                                on:change=move |ev| {
-                                                    if let Ok(val) = event_target_value(&ev).parse::<usize>() {
-                                                        set_total_tokens.set(val);
-                                                    }
-                                                }
-                                                class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 {}",
-                                                    if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                                )
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            // Growth Rates
-                            <div class="mb-8">
-                                <h3 class=move || format!("text-lg font-semibold mb-4 {}",
-                                    if dark_mode.get() { "text-purple-400" } else { "text-purple-600" }
-                                )>"Growth Rates (per auction)"</h3>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium mb-2">"Trust Assets Growth %"</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value=move || trust_assets_growth.get()
-                                            on:change=move |ev| {
-                                                if let Ok(val) = event_target_value(&ev).parse::<u32>() {
-                                                    set_trust_assets_growth.set(val);
-                                                }
-                                            }
-                                            class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
-                                                if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                            )
-                                        />
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-2">"Redemption % Growth"</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value=move || redemption_percentage_growth.get()
-                                            on:change=move |ev| {
-                                                if let Ok(val) = event_target_value(&ev).parse::<u32>() {
-                                                    set_redemption_percentage_growth.set(val);
-                                                }
-                                            }
-                                            class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
-                                                if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                            )
-                                        />
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-2">"Bidder Growth %"</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value=move || bidder_growth.get()
-                                            on:change=move |ev| {
-                                                if let Ok(val) = event_target_value(&ev).parse::<u32>() {
-                                                    set_bidder_growth.set(val);
-                                                }
-                                            }
-                                            class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
-                                                if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                            )
-                                        />
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-2">"Token Growth %"</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value=move || token_growth.get()
-                                            on:change=move |ev| {
-                                                if let Ok(val) = event_target_value(&ev).parse::<u32>() {
-                                                    set_token_growth.set(val);
-                                                }
-                                            }
-                                            class=move || format!("w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 {}",
-                                                if dark_mode.get() { "bg-gray-700 border-gray-600 text-white" } else { "bg-white border-gray-300" }
-                                            )
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            // Simulation Options
-                            <div class="mb-8">
-                                <h3 class=move || format!("text-lg font-semibold mb-4 {}",
-                                    if dark_mode.get() { "text-orange-400" } else { "text-orange-600" }
-                                )>"Simulation Options"</h3>
-                                <div class="space-y-4">
-                                    <label class="flex items-center space-x-3">
-                                        <input
-                                            type="checkbox"
-                                            checked=move || use_profiles.get()
-                                            on:change=move |ev| {
-                                                set_use_profiles.set(event_target_checked(&ev));
-                                            }
-                                            class="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                                        />
-                                        <div>
-                                            <span class="text-sm font-medium">"Use Bidder Profiles & Learning"</span>
-                                            <p class=move || format!("text-xs {}",
-                                                if dark_mode.get() { "text-gray-400" } else { "text-gray-500" }
-                                            )>"Enable different bidding strategies that adapt over time"</p>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            // Apply button
-                            <div class=move || format!("border-t pt-6 {}",
-                                if dark_mode.get() { "border-gray-600" } else { "border-gray-200" }
-                            )>
-                                <button
-                                    on:click=move |_| {
-                                        set_active_tab.set(ActiveTab::Simulation);
-                                        generate_bidders_action();
-                                    }
-                                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition"
-                                >
-                                    "Apply & Return to Simulation"
-                                </button>
                             </div>
                         </div>
                     </Show>
