@@ -2046,7 +2046,7 @@ pub fn App() -> impl IntoView {
                                             <label class="block text-sm font-medium mb-2">"Trust Assets"</label>
                                             <input
                                                 type="number"
-                                                value=move || trust_assets.get()
+                                                prop:value=move || trust_assets.get()
                                                 on:input=move |ev| {
                                                     if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                         set_trust_assets.set(val);
@@ -2063,7 +2063,7 @@ pub fn App() -> impl IntoView {
                                                 type="number"
                                                 min="1"
                                                 max="100"
-                                                value=move || redemption_percentage.get()
+                                                prop:value=move || redemption_percentage.get()
                                                 on:input=move |ev| {
                                                     if let Ok(val) = event_target_value(&ev).parse::<u32>() {
                                                         set_redemption_percentage.set(val);
