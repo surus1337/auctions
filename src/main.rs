@@ -38,10 +38,10 @@ struct ScenarioTemplate {
 const SCENARIO_TEMPLATES: &[ScenarioTemplate] = &[
     ScenarioTemplate {
         name: "Default",
-        trust_assets: 50000,
-        redemption_percentage: 20,
-        num_bidders: 5,
-        total_tokens: 50,
+        trust_assets: 350000,
+        redemption_percentage: 5,
+        num_bidders: 30,
+        total_tokens: 60000,
         trust_assets_growth: 30,
         redemption_percentage_growth: 20,
         bidder_growth: 30,
@@ -1028,10 +1028,10 @@ pub fn App() -> impl IntoView {
     let (selected_auction_for_details, set_selected_auction_for_details) = create_signal(None::<AuctionResults>);
     
     // Core configuration
-    let (trust_assets, set_trust_assets) = create_signal(50000u32);
-    let (redemption_percentage, set_redemption_percentage) = create_signal(20u32);
-    let (num_bidders, set_num_bidders) = create_signal(5usize);
-    let (total_tokens, set_total_tokens) = create_signal(50usize);
+    let (trust_assets, set_trust_assets) = create_signal(350000u32);
+    let (redemption_percentage, set_redemption_percentage) = create_signal(5u32);
+    let (num_bidders, set_num_bidders) = create_signal(30usize);
+    let (total_tokens, set_total_tokens) = create_signal(60000usize);
     let (use_profiles, set_use_profiles) = create_signal(true);
     let (market_condition, set_market_condition) = create_signal(MarketCondition::Neutral);
     
@@ -1349,10 +1349,10 @@ pub fn App() -> impl IntoView {
                                     <button
                                         on:click=move |_| {
                                             // Reset everything
-                                            set_trust_assets.set(50000);
-                                            set_redemption_percentage.set(20);
-                                            set_num_bidders.set(5);
-                                            set_total_tokens.set(50);
+                                            set_trust_assets.set(350000);
+                                            set_redemption_percentage.set(5);
+                                            set_num_bidders.set(30);
+                                            set_total_tokens.set(60000);
                                             set_trust_assets_growth.set(30);
                                             set_redemption_percentage_growth.set(20);
                                             set_bidder_growth.set(30);
@@ -1361,7 +1361,7 @@ pub fn App() -> impl IntoView {
                                             set_auction_history.set(Vec::new());
                                             set_market_condition.set(MarketCondition::Neutral);
                                             // Generate fresh bidders
-                                            let new_bidders = generate_initial_bidders(5, 50, true);
+                                            let new_bidders = generate_initial_bidders(30, 60000, true);
                                             set_bidders.set(new_bidders);
                                         }
                                         class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
