@@ -1021,35 +1021,7 @@ fn export_bidder_summary_csv(auction_history: &[AuctionResults]) {
 }
 
 // Add this near the top of the file, after the imports
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Environment {
-    Production,
-}
 
-impl Environment {
-    fn name(&self) -> &str {
-        "Production"
-    }
-    
-    fn color_class(&self) -> &str {
-        "bg-green-500"
-    }
-    
-    fn from_url() -> Self {
-        Environment::Production
-    }
-}
-
-#[component]
-fn EnvironmentBanner() -> impl IntoView {
-    let environment = Environment::from_url();
-    
-    view! {
-        <div class=format!("w-full py-1 text-center text-white text-sm font-medium flex items-center justify-center gap-2 {}", environment.color_class())>
-            <span>{format!("{} Environment", environment.name())}</span>
-        </div>
-    }
-}
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -1190,7 +1162,6 @@ pub fn App() -> impl IntoView {
         <div class=move || format!("min-h-screen transition-colors {}", 
             if dark_mode.get() { "bg-gray-900 text-white" } else { "bg-gray-50 text-gray-900" }
         )>
-            <EnvironmentBanner/>
             <div class="max-w-7xl mx-auto p-4">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-3xl font-bold">"Token Auction Simulator"</h1>
