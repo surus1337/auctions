@@ -2338,4 +2338,4 @@ pub fn App() -> impl IntoView {
 fn main() {
     console_error_panic_hook::set_once();
     mount_to_body(|| view! { <App/> })
-}
+}// trigger staging redeploy Fri May 23 20:40:53 EDT 2025
