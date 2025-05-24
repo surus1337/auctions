@@ -1021,76 +1021,7 @@ fn export_bidder_summary_csv(auction_history: &[AuctionResults]) {
 }
 
 // Add this near the top of the file, after the imports
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Environment {
-    Staging,
-    Production,
-}
 
-impl Environment {
-    fn name(&self) -> &str {
-        match self {
-            Environment::Staging => "Staging",
-            Environment::Production => "Production",
-        }
-    }
-    
-    fn color_class(&self) -> &str {
-        match self {
-            Environment::Staging => "bg-yellow-500",
-            Environment::Production => "bg-green-500",
-        }
-    }
-    
-    fn from_url() -> Self {
-        let window = web_sys::window().unwrap();
-        let location = window.location();
-        let pathname = location.pathname().unwrap();
-        if pathname.contains("/staging") {
-            Environment::Staging
-        } else {
-            Environment::Production
-        }
-    }
-}
-
-#[component]
-fn EnvironmentBanner() -> impl IntoView {
-    let environment = Environment::from_url();
-    let window = web_sys::window().unwrap();
-    let location = window.location();
-    let current_path = location.pathname().unwrap();
-    
-    // Get the base path without environment
-    let base_path = if current_path.contains("/staging") {
-        current_path.replace("/staging", "")
-    } else {
-        current_path.clone()
-    };
-    
-    // Create the alternate environment URL
-    let alternate_url = match environment {
-        Environment::Staging => base_path,
-        Environment::Production => format!("{}/staging", base_path),
-    };
-    
-    view! {
-        <div class=format!("w-full py-1 text-center text-white text-sm font-medium flex items-center justify-center gap-2 {}", environment.color_class())>
-            <span>{format!("{} Environment", environment.name())}</span>
-            <a 
-                href=alternate_url
-                class="text-white/80 hover:text-white underline text-xs"
-            >
-                {format!("Switch to {} →", 
-                    match environment {
-                        Environment::Staging => "Production",
-                        Environment::Production => "Staging"
-                    }
-                )}
-            </a>
-        </div>
-    }
-}
 
 // Add after the Environment enum
 #[component]
@@ -1299,7 +1230,6 @@ pub fn App() -> impl IntoView {
         <div class=move || format!("min-h-screen transition-colors {}", 
             if dark_mode.get() { "bg-gray-900 text-white" } else { "bg-gray-50 text-gray-900" }
         )>
-            <EnvironmentBanner/>
             <div class="max-w-7xl mx-auto p-4">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-3xl font-bold">"Token Auction Simulator"</h1>
